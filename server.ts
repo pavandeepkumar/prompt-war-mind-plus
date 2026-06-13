@@ -12,6 +12,39 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Manually enforce standard security response headers to safeguard user session
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
+  // Simple and lightweight in-memory rate limiter to secure API from abuse
+  const rateLimitStore: Record<string, { count: number; resetTime: number }> = {};
+  const apiRateLimiter = (req: any, res: any, next: any) => {
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'anonymous';
+    const now = Date.now();
+    const limitWindow = 10 * 60 * 1000; // 10 minutes
+    const maxRequestsPerWindow = 60;   // 60 requests maximum
+
+    if (!rateLimitStore[ip] || now > rateLimitStore[ip].resetTime) {
+      rateLimitStore[ip] = {
+        count: 1,
+        resetTime: now + limitWindow
+      };
+    } else {
+      rateLimitStore[ip].count++;
+    }
+
+    if (rateLimitStore[ip].count > maxRequestsPerWindow) {
+      return res.status(429).json({
+        error: 'Too many requests. Please cool down and try again in 10 minutes.'
+      });
+    }
+    next();
+  };
+
   // API Route: Verify whether GEMINI_API_KEY is configured on the server
   app.get('/api/verify-config', (req, res) => {
     const isConfigured = !!process.env.GEMINI_API_KEY;
@@ -19,7 +52,7 @@ async function startServer() {
   });
 
   // API Route: Analyze student's journal entry via real Gemini API
-  app.post('/api/analyze', async (req, res) => {
+  app.post('/api/analyze', apiRateLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
