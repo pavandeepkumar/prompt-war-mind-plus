@@ -38,14 +38,14 @@ export default function JournalPanel({ onAnalyze, isAnalyzing, error }: JournalP
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-5 md:p-6" id="journal-input-form">
-      <div className="flex items-center justify-between mb-3">
-        <label htmlFor="journal-textarea" className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-          <PenTool className="h-4.5 w-4.5 text-indigo-400" />
+    <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-md border border-white/50 rounded-3xl p-6 shadow-xl shadow-zinc-200/40" id="journal-input-form">
+      <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+        <label htmlFor="journal-textarea" className="text-sm font-bold text-slate-800 flex items-center gap-2">
+          <PenTool className="h-4.5 w-4.5 text-indigo-600 animate-pulse-gentle" />
           Student Stress Journal
         </label>
         
-        <span className="text-[10px] font-mono text-zinc-500 font-medium">
+        <span className="text-[10px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-full">
           {text.length} / 5000 chars
         </span>
       </div>
@@ -57,7 +57,7 @@ export default function JournalPanel({ onAnalyze, isAnalyzing, error }: JournalP
           onChange={(e) => setText(e.target.value.slice(0, 5000))}
           placeholder={prompts[placeholderIndex]}
           disabled={isAnalyzing}
-          className="w-full min-h-[140px] bg-zinc-950 border border-zinc-800 focus:border-indigo-500/80 rounded-2xl p-4 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none transition-all leading-relaxed resize-y focus:ring-1 focus:ring-indigo-500/30"
+          className="w-full min-h-[140px] bg-slate-50/50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-2xl p-4 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all leading-relaxed resize-y focus:ring-4 focus:ring-indigo-100"
           aria-label="Student stress journal entry text field"
         />
         
@@ -65,7 +65,7 @@ export default function JournalPanel({ onAnalyze, isAnalyzing, error }: JournalP
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-3 bottom-3 text-xs text-zinc-500 hover:text-zinc-300 font-mono"
+            className="absolute right-3.5 bottom-3.5 text-xs text-slate-400 hover:text-slate-600 font-mono font-bold hover:underline"
           >
             Clear text
           </button>
@@ -73,24 +73,24 @@ export default function JournalPanel({ onAnalyze, isAnalyzing, error }: JournalP
       </div>
 
       {error && (
-        <div className="mt-3 bg-rose-500/5 border border-rose-500/20 rounded-xl p-3 flex items-start gap-2.5 text-xs text-rose-400 animate-slide-up">
+        <div className="mt-4 bg-rose-50 border border-rose-150 rounded-2xl p-4 flex items-start gap-2.5 text-xs text-rose-700 animate-slide-up shadow-sm">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <span>{error}</span>
+          <span className="font-medium">{error}</span>
         </div>
       )}
 
       <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p className="text-[10px] text-zinc-500 font-medium leading-relaxed max-w-sm text-center sm:text-left">
+        <p className="text-[10px] text-slate-500 font-medium leading-relaxed max-w-sm text-center sm:text-left">
           🔐 Real-time Gemini inference is processed server-side. No entries are logged or stored.
         </p>
 
         <button
           type="submit"
           disabled={text.trim().length < 10 || isAnalyzing}
-          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+          className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
             text.trim().length < 10 || isAnalyzing
-              ? 'bg-zinc-800 text-zinc-500 border border-zinc-800/50 cursor-not-allowed'
-              : 'bg-white hover:bg-zinc-200 text-black shadow-lg shadow-white/5 active:scale-95'
+              ? 'bg-slate-150 text-slate-400 border border-slate-200/60 cursor-not-allowed shadow-none'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
           }`}
           id="analyze-submit-button"
         >

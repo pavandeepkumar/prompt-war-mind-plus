@@ -10,13 +10,19 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '100kb' }));
 
-  // Manually enforce standard security response headers to safeguard user session
+  // Enforce comprehensive HTTP security response headers to secure student data
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;"
+    );
     next();
   });
 
@@ -49,6 +55,82 @@ async function startServer() {
   app.get('/api/verify-config', (req, res) => {
     const isConfigured = !!process.env.GEMINI_API_KEY;
     res.json({ apiConfigured: isConfigured });
+  });
+
+  // API Route: Real-time Empathetic conversational companion Aura (supports problem statement)
+  app.post('/api/companion-chat', apiRateLimiter, async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({
+          error: 'GEMINI_API_KEY environment variable is not configured. Please add it to your secrets or .env.local file to activate live AI chat.',
+        });
+      }
+
+      const { message, history = [] } = req.body;
+
+      if (!message || message.trim().length === 0) {
+        return res.status(400).json({
+          error: 'Message text cannot be empty.',
+        });
+      }
+
+      if (message.length > 5000) {
+        return res.status(400).json({
+          error: 'Message is too long. Please restrict your text to 5000 characters.'
+        });
+      }
+
+      // Initialize client using the modern, correct GoogleGenAI SDK
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
+
+      // System instruction shaping Aura - the student's always-available mental well-being helper
+      const systemInstruction = `You are Aura, an empathetic, safe, and always-available digital exam stress companion built for Indian competitive exam aspirants (NEET, JEE, UPSC, CUET, GATE, CAT).
+The student is preparing for high-stakes milestones. They face severe stress, burnout, PG loneliness (e.g., in Kota, Delhi, or coaching hubs), late-night study fatigue, and acute self-doubt.
+
+Today's context: The simulated current date is Saturday, June 13, 2026. Note that the critical NEET 2026 Re-exam is Scheduled for June 21, 2026 — only 8 DAYS AWAY. This re-exam triggered extreme mental panic. UPSC is 15 days away.
+
+Your mission is to act as a loving, conversational, and highly safety-conscious digital companion:
+- Provide short, comforting, conversational dialogue (1-3 sentences) to make it highly engaging and conversational. 
+- Avoid any diagnostic language, clinical definitions, or medical advice. Safely direct them to grounding or breathing hacks if they express physical panic.
+- Validate their feelings with profound empathy. Acknowledge local coaching realities (exhausting study schedules, PG mess food, pressure from parents, mock scores).
+- Keep formatting clean. You can use markdown bullet points if they ask for study tips or breathing techniques, but keep general talk brief and dialogic.
+- Speak directly and warmly as a human support companion. Do not use AI jargon or state that you are a model.`;
+
+      // Map incoming historical turns into the required format for generateContent
+      const contentsPayload = history.map((h: any) => ({
+        role: h.sender === 'student' ? 'user' : 'model',
+        parts: [{ text: h.text }]
+      }));
+
+      // Append user's current query
+      contentsPayload.push({
+        role: 'user',
+        parts: [{ text: message }]
+      });
+
+      const result = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: contentsPayload,
+        config: {
+          systemInstruction,
+          temperature: 0.70,
+        },
+      });
+
+      const text = result.text || "I am right here with you. Take a slow, steady inhale. You are capable and you are not alone in this journey.";
+      res.json({ text });
+    } catch (err: any) {
+      console.error('Companion Chat processing failed:', err);
+      res.status(500).json({ error: `Companion processing failed: ${err.message}` });
+    }
   });
 
   // API Route: Analyze student's journal entry via real Gemini API
